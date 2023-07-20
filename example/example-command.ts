@@ -16,19 +16,3 @@ const res = await tree.call({
   extensions: [".ts", ".js"],
 });
 console.log(res.stdout);
-/*
-const codeExplain = cogito.thinker("code-explain", {
-  description:
-    "与えられたpath配下にあるtsファイルを読んで概要を短く教えてください。.ただし、node_modulesを対象から外すこと。",
-  input: z.object({
-    path: z.string(),
-  }),
-  output: z.string().describe("短い説明文"),
-  functions: [tree],
-});
-
-const res2 = await codeExplain.call({
-  path: "./",
-});
-console.log(res2);
-*/

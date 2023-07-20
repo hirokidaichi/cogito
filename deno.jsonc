@@ -1,9 +1,7 @@
 {
   "imports": {
-   "langchain/": "npm:/langchain/",
-   "zod" : "npm:/zod"
   },
   "tasks": {
-    "main": "deno run --allow-all --watch agent-test.ts"
+    "test": "deno test --allow-all --unstable ./src"
   }
 }

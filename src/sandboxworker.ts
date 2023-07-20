@@ -15,7 +15,9 @@ const getRPCProviderCode = async () => {
 const createRPCSetupCode = (entry: string, funcList: FuncAny[]) => {
   const importing = funcList.map((func) => {
     const name = func.name;
-    return func.asTypeScript(`return await rpc.call("${name}",input);`);
+    return func.asTypeScript(
+      `//@ts-ignore rpc is unknown response \nreturn await rpc.call("${name}",input);`,
+    );
   }).join("\n");
   return `
 const rpc = new RPCProvider("${entry}", self);
