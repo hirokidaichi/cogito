@@ -1,4 +1,4 @@
-import { cogito, z } from "../cogito/mod.ts";
+import { cogito, z } from "../mod.ts";
 
 const CharacterProfile = z.object({
   name: z.string().describe("親しみを込めて呼べる名前。ダジャレ要素も入れたい"),

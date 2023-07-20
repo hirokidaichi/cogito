@@ -1,4 +1,4 @@
-import { cogito, z } from "../cogito/mod.ts";
+import { cogito, z } from "../mod.ts";
 
 const javascript = cogito.func("javascript", {
   description: "Evaluate javascript expression",

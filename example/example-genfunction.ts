@@ -1,4 +1,4 @@
-import { cogito, z } from "../cogito/mod.ts";
+import { cogito, z } from "../mod.ts";
 
 const FunctionDef = z.object({
   name: z.string().describe("関数の名前: 例: gzipSearch"),

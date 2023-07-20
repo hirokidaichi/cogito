@@ -1,4 +1,4 @@
-import { cogito } from "../cogito/mod.ts";
+import { cogito } from "../mod.ts";
 
 console.log(cogito.settings.get("language"));
 

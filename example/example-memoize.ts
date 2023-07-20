@@ -1,4 +1,4 @@
-import { cogito, z } from "../cogito/mod.ts";
+import { cogito, z } from "../mod.ts";
 
 const add = cogito.func("add", {
   description: "add two numbers",
@@ -20,4 +20,3 @@ const listFruits = cogito.memoize(cogito.thinker("listFruits", {
 
 console.log(await listFruits.call({ count: 3 }));
 console.log(await listFruits.call({ count: 3 }));
-

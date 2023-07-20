@@ -1,4 +1,4 @@
-import { cogito, z } from "../cogito/mod.ts";
+import { cogito, z } from "../mod.ts";
 
 const tree = cogito.command("tree", {
   description: "ディレクトリのツリーを表示します",
