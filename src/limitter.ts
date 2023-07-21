@@ -1,11 +1,4 @@
-import { logger } from "./logger.ts";
-type Token = {
-  time: number;
-  id: string;
-};
-
 const SECOND = 1000;
-const MINUTE = 60 * SECOND;
 
 const wait = (ms: number): Promise<void> => {
   return new Promise((resolve) => {
@@ -24,12 +17,7 @@ export class Limitter {
   ) {
     this.limitPerSecound = limitPerMinute / 60;
   }
-  public genToken() {
-    return {
-      time: Date.now(),
-      id: Math.random().toString(36).slice(10),
-    };
-  }
+
   public isOverRateLimitInSecond() {
     const now = Date.now();
     const insecond = this.history.filter((date) => {
@@ -62,5 +50,3 @@ export class Limitter {
     return result;
   }
 }
-
-
