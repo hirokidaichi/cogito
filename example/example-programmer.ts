@@ -38,7 +38,7 @@ export const listupMonsterCharactor = cogito.programmer(
     description: `
 テーマから連想されるアイテムと動物を組み合わせて、キャラクターを作成する。
 count個の動物とテーマから連想されるアイテムを生成して、組み合わせて{count}個のキャラクターを生成する。
-最大5並列で実行してまとめる。
+また、最大限並列化する。
 `,
     input: z.object({
       theme: z.string(),

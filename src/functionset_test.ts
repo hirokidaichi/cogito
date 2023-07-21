@@ -205,15 +205,4 @@ Deno.test("create-functionset", () => {
 
   const r = fs.search("アンケートの表示", 2);
   assert(r.list()[0].name == "presentSurveyResults");
-
-  //assert(, "ok");
-  /*
-  const exThinker = cogito.thinker("summarySurvey", {
-    description: "アンケート結果をサマリーして表示",
-    input: z.void(),
-    output: z.string(),
-    functions: fs.search("アンケートの表示", 2),
-  });
-
-  console.log(await exThinker.call());*/
 });

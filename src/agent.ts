@@ -6,6 +6,9 @@ import {
 import { settings } from "./settings.ts";
 import { FunctionSet, FunctionSetOption } from "./functionset.ts";
 import { functionMessage, systemMessage, userMessage } from "./message.ts";
+import { Limitter } from "./limitter.ts";
+
+const limitter = new Limitter(settings.get("limit_per_minute"));
 
 const DEFAULT_CONFIG = new Configuration({
   apiKey: Deno.env.get("OPENAI_API_KEY") ?? "",
@@ -62,7 +65,7 @@ export class Agent {
     if (message) {
       this.addUserMessage(message);
     }
-    const res = await this.guess();
+    const res = await limitter.call(() => this.guess());
     const choice = res.data.choices[0];
     const resMessage = choice.message;
     if (resMessage) {

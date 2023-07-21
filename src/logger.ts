@@ -22,7 +22,9 @@ const FUNC_NAME = (name: string) => {
 const REQUEST = colors.bgBrightMagenta("(request)");
 const RESPONSE = colors.bgBrightCyan("(response)");
 const CODE = colors.bgBrightGreen("(code)");
-
+const CLASS = (cls?: string) => {
+  return colors.bgBrightYellow(`(${cls || "(anonymous)"})`);
+};
 type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 
 type FuncRequestLog = {
@@ -46,23 +48,30 @@ type ProgrammerCodeLog = {
   code: string;
 };
 
+type MessageLog = {
+  type: "message";
+  message: string;
+  class?: string;
+};
+type DebugLog = {
+  level: "debug";
+} & MessageLog;
 type WarningLog = {
   level: "warn";
-  message: string;
-};
+} & MessageLog;
 type ErrorLog = {
   level: "error";
-  message: string;
-};
+} & MessageLog;
+
 type FatalLog = {
   level: "fatal";
-  message: string;
-};
+} & MessageLog;
 
 type LogRecord =
   | FuncRequestLog
   | FuncResponseLog
   | ProgrammerCodeLog
+  | DebugLog
   | WarningLog
   | ErrorLog
   | FatalLog;
@@ -76,12 +85,12 @@ type FatalLevelLog = Extract<LogRecord, { level: "fatal" }>;
 export class Logger {
   constructor(
     public verbose: boolean = true,
-    public loglevel: LogLevel = "info",
+    public loglevel: LogLevel[] = ["info", "debug", "warn", "error", "fatal"],
     public records: LogRecord[] = [],
   ) {}
   public emit(record: LogRecord) {
     if (!this.verbose) return;
-
+    if (!this.loglevel.includes(record.level)) return;
     if (record.level == "info") {
       return this.emitInfo(record);
     }
@@ -100,8 +109,13 @@ export class Logger {
   }
   public emitDebug(record: DebugLevelLog) {
     const level = LEVEL(record.level);
-    const name = FUNC_NAME(record.name);
-    console.log(level, CODE, name, record.code);
+    if (record.type === "code") {
+      const name = FUNC_NAME(record.name);
+      console.log(level, CODE, name, record.code);
+      return;
+    } else {
+      console.log(level, CLASS(record.class), record.message);
+    }
   }
 
   public emitFatal(_record: FatalLevelLog) {
@@ -114,12 +128,9 @@ export class Logger {
     const name = FUNC_NAME(record.name);
     console.log(level, name, record.message);*/
   }
-  public emitWarn(_record: WarnLevelLog) {
-    const level = LEVEL(_record.level);
-    console.warn(level, _record.message);
-    /*const level = LEVEL(record.level);
-    const name = FUNC_NAME(record.name);
-    console.log(level, name, record.message);*/
+  public emitWarn(record: WarnLevelLog) {
+    const level = LEVEL(record.level);
+    console.warn(level, record.message);
   }
   public emitInfo(record: InfoLevelLog) {
     const level = LEVEL(record.level);
@@ -135,9 +146,19 @@ export class Logger {
       });
     }
   }
-  public warn(message: string) {
-    this.log({ level: "warn", message });
+  public warn(message: string, cls?: string) {
+    this.log({ level: "warn", type: "message", message, class: cls });
   }
+  public debug(message: string, cls?: string) {
+    this.log({ level: "debug", type: "message", message, class: cls });
+  }
+  public error(message: string, cls?: string) {
+    this.log({ level: "error", type: "message", message, class: cls });
+  }
+  public fatal(message: string, cls?: string) {
+    this.log({ level: "fatal", type: "message", message, class: cls });
+  }
+
   public log(record: LogRecord) {
     logger.emit(record);
     this.records.push(record);

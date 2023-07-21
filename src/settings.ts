@@ -12,6 +12,7 @@ const GlobalSettingsSchema = z.object({
   reading_chunk_overlap: z.number().default(500),
   too_long_length: z.number().default(10000),
   tokenizer: z.string().default("gpt2"),
+  limit_per_minute: z.number().default(50),
   chunk_size: z.number().default(2048),
   chunk_overlap: z.number().default(100),
   temperature: z.number().default(0),
