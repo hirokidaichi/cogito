@@ -5,6 +5,7 @@ import { compactForGoal } from "./chain.ts";
 import { logger } from "./logger.ts";
 const answeringMessage = () =>
   `You need to answer in ${settings.get("language")}`;
+
 type Success<T> = {
   isSuccess: true;
   value: T;
@@ -16,6 +17,25 @@ type Failure<E = Error> = {
 };
 
 type Result<T, E = Error> = Success<T> | Failure<E>;
+
+type Callback<T> = () => Promise<T>;
+
+const trying = async <T>(callback: Callback<T>): Promise<Result<T>> => {
+  try {
+    const result = await callback();
+    return {
+      isSuccess: true,
+      value: result,
+    };
+  } catch (e) {
+    logger.warn(e);
+    return {
+      isSuccess: false,
+      error: e,
+    };
+  }
+  //return await callback();
+};
 export class AgentExecutor {
   constructor(
     public agent: Agent,
@@ -62,7 +82,8 @@ export class AgentExecutorWithResult<Output> {
       return output;
     }
     const instruction = this.parser.getFormatInstructions();
-    const goal = `${this.prompt}\n${instruction}`;
+    const lang = answeringMessage();
+    const goal = `${this.prompt}\n${instruction}\n${lang}`;
     const compactResult = await compactForGoal(goal, output);
     return compactResult;
   }
@@ -81,10 +102,14 @@ export class AgentExecutorWithResult<Output> {
       if (!res.function_call) break;
       const { name, arguments: args } = res.function_call;
       if (name && this.agent.functions.has(name)) {
-        const result = await this.agent.functions.call(name, args || "");
+        const result = await trying(async () => {
+          return await this.agent.functions.call(name, args || "");
+        });
+        const value = result.isSuccess ? result.value : result;
+
         this.agent.addFunctionMessage(
           name,
-          await this.compact(JSON.stringify(result || "")),
+          await this.compact(JSON.stringify(value)),
         );
         this.agent.addSystemMessage(instruction);
         continue;
