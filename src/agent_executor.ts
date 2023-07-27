@@ -2,6 +2,7 @@ import { settings } from "./settings.ts";
 import { Agent } from "./agent.ts";
 import { StructuredOutputParser, z } from "./deps.ts";
 import { compactForGoal } from "./chain.ts";
+import { logger } from "./logger.ts";
 const answeringMessage = () =>
   `You need to answer in ${settings.get("language")}`;
 type Success<T> = {
@@ -25,7 +26,6 @@ export class AgentExecutor {
     this.agent.addUserMessage(this.prompt);
     this.agent.addSystemMessage(answeringMessage());
     while (true) {
-      console.log(this.agent.messages.at(-1)?.content);
       const res = await this.agent.chat();
       if (res == undefined) break;
       if (res.function_call) {
@@ -64,7 +64,6 @@ export class AgentExecutorWithResult<Output> {
     const instruction = this.parser.getFormatInstructions();
     const goal = `${this.prompt}\n${instruction}`;
     const compactResult = await compactForGoal(goal, output);
-    console.log("compact", compactResult);
     return compactResult;
   }
   public async exec(): Promise<Output> {
@@ -102,7 +101,7 @@ export class AgentExecutorWithResult<Output> {
       if (res.isSuccess) {
         return res.value;
       } else {
-        console.warn(`retry:${i + 1}`, res.error.message);
+        logger.warn(`retry:${i + 1}`, res.error.message);
         this.agent.addSystemMessage(this.parser.getFormatInstructions());
         this.agent.addSystemMessage(res.error.message);
         await this.agent.chat();

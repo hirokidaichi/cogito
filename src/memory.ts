@@ -1,4 +1,4 @@
-import { core } from "./core.ts";
+import { cogito, z } from "./core.ts";
 
 /*
 
@@ -7,3 +7,5 @@ memory.add
 
 functions: [..memory("init")]
 */
+
+console.log(cogito, z);

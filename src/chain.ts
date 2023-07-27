@@ -26,7 +26,6 @@ export const compactForGoal = async (goal: string, longText: string) => {
 
   const doc = new Document({ pageContent: longText });
   const docs = await splitter.splitDocuments([doc]);
-  console.log(goal);
   const chain = loadQARefineChain(model);
   const prompt =
     `Extract the necessary information to achieve the goal.\nGoal: ${goal}`;

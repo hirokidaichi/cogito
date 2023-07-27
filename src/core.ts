@@ -10,7 +10,7 @@ import { memoize, memoizePersistent } from "./memoize.ts";
 import { settings } from "./settings.ts";
 export { z } from "./deps.ts";
 
-export const core = {
+export const cogito = {
   agent: Agent.create,
   func: func,
   thinker: thinker,
