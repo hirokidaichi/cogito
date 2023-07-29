@@ -1,4 +1,4 @@
-#　🧠🔧 - cogito - a functional AI agent framework 
+# 🧠🔧 - cogito - a functional AI agent framework 
 
 AIエージェントフレームワーク「cogito(コギト)」
 
