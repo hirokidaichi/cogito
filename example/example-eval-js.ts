@@ -1,7 +1,8 @@
 import { cogito, z } from "../mod.ts";
 
-const javascript = cogito.func("javascript", {
-  description: "Evaluate javascript expression",
+const javascript = cogito.func("matheval", {
+  description:
+    "Evaluate simple mathematics expression( like 1+1 or 2*3*(1+2)  )",
   input: z.object({ expression: z.string() }),
   output: z.any(),
   callback: ({ expression }) => {
