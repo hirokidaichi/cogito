@@ -149,7 +149,7 @@ const result = await generateIdea.call({ theme: "カレーの新業態" });
 console.log(JSON.stringify(result));
 ```
 出力とその過程は以下のようになる。
-```json
+```
 [INFO] (request) generateIdea 
  { theme: "カレーの新業態" }
 [INFO] (request) listIdeaSeed 
