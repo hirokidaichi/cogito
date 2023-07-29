@@ -1,6 +1,6 @@
-# cogito a functional AI agent framework "cogito" for Deno
+# cogito - a functional AI agent framework 
 
-Deno向けの関数をベースとしたAIエージェントフレームワーク「cogito(コギト)」
+AIエージェントフレームワーク「cogito(コギト)」
 
 # `cogito`の目的とねらい
 
