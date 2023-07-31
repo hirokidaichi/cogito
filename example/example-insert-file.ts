@@ -1,21 +1,18 @@
 import { cogito, z } from "../mod.ts";
 
-const textfile = cogito.textfile();
+const textfile = cogito.textfile;
 
 const insertDocument = cogito.thinker("insert_document", {
   description:
-    "与えられたパスのファイルを読んで、与えられた関数に関する説明を考え、日本語のコメントを追加しなさい。",
+    "与えられたパスのソースコードが行っていることの説明を箇条書きでリストとして出力する。",
   input: z.object({
     path: z.string(),
-    functionName: z.string(),
   }),
-  output: z.enum(["success", "failure"]),
-  functions: [textfile.read, textfile.insert],
+  output: z.array(z.string()),
+  functions: [textfile.read],
 });
 
 const result = await insertDocument.call({
-  path: "src/agent.ts",
-  functionName: "addLineNumbers",
+  path: "src/textfile.ts",
 });
-
-//console.log(cogito.textfile.dryrun.list());
+console.log(JSON.stringify(result));
