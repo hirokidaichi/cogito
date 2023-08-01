@@ -96,20 +96,18 @@ export class Func<Input, Output> {
     });
     return realResult;
   }
-
-  static create<Input, Output>(
-    name: string,
-    options: FuncOptions<Input, Output>,
-  ) {
-    return new Func(
-      name,
-      options.description,
-      options.input,
-      options.output,
-      options.callback,
-    );
-  }
 }
 // deno-lint-ignore no-explicit-any
 export type FuncAny = Func<any, any>;
-export const func = Func.create;
+export const func = <Input, Output>(
+  name: string,
+  options: FuncOptions<Input, Output>,
+) => {
+  return new Func(
+    name,
+    options.description,
+    options.input,
+    options.output,
+    options.callback,
+  );
+};

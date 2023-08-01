@@ -5,7 +5,7 @@ import { FunctionSet, FunctionSetOption } from "./functionset.ts";
 import { SandboxWorker } from "./sandboxworker.ts";
 import { logger } from "./logger.ts";
 import { memoizePersistent } from "./memoize.ts";
-import { thinker } from "./thinker.ts";
+import { talker } from "./talker.ts";
 
 function extractCode(input: string): string | null {
   const match = input.match(/```(?:javascript|typescript)([\s\S]*?)```/);
@@ -19,7 +19,7 @@ type ProgrammerOptions<
   autoStop?: boolean;
 };
 
-const coding = memoizePersistent(thinker("coding", {
+const coding = memoizePersistent(talker("codeProgram", {
   description: `あなたは優秀なプログラマーです。
     ・{functions}で与えられた関数がすでに実装され使える状態です。
     ・{define}で与えられた定義に従い、その関数を実装してください。
@@ -29,7 +29,6 @@ const coding = memoizePersistent(thinker("coding", {
     define: z.string(),
     functions: z.string(),
   }),
-  output: z.string().describe("実装したコードを文字列として返す"),
 }));
 
 export class Programmer<Input, Output> extends Func<Input, Output> {
@@ -93,23 +92,23 @@ export class Programmer<Input, Output> extends Func<Input, Output> {
       this.sandbox.terminate();
     }
   }
-
-  static create<Input, Output>(
-    name: string,
-    options: ProgrammerOptions<Input, Output>,
-  ) {
-    const functions = options.functions ?? new FunctionSet();
-    const functionSet = (functions instanceof FunctionSet)
-      ? functions
-      : FunctionSet.create(functions);
-
-    return new Programmer(
-      name,
-      options.description,
-      options.input,
-      options.output,
-      functionSet,
-      options.autoStop ?? true,
-    );
-  }
 }
+
+export const programmer = <Input, Output>(
+  name: string,
+  options: ProgrammerOptions<Input, Output>,
+) => {
+  const functions = options.functions ?? new FunctionSet();
+  const functionSet = (functions instanceof FunctionSet)
+    ? functions
+    : FunctionSet.create(functions);
+
+  return new Programmer(
+    name,
+    options.description,
+    options.input,
+    options.output,
+    functionSet,
+    options.autoStop ?? true,
+  );
+};

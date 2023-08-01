@@ -2,8 +2,9 @@ import { SandboxWorker } from "./sandboxworker.ts";
 import { func } from "./func.ts";
 import { FunctionSet } from "./functionset.ts";
 import { Agent } from "./agent.ts";
+import { talker } from "./talker.ts";
 import { thinker } from "./thinker.ts";
-import { Programmer } from "./programmer.ts";
+import { programmer } from "./programmer.ts";
 import { command } from "./command.ts";
 import { logger } from "./logger.ts";
 import { memoize, memoizePersistent } from "./memoize.ts";
@@ -12,12 +13,13 @@ export { z } from "./deps.ts";
 
 export const cogito = {
   agent: Agent.create,
-  func: func,
-  thinker: thinker,
+  func,
+  thinker,
+  talker,
+  command,
+  programmer,
   functionset: FunctionSet.create,
-  programmer: Programmer.create,
   sandbox: SandboxWorker.create,
-  command: command,
   memoize,
   memoizePersistent,
   settings,

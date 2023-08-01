@@ -1,4 +1,4 @@
-import { cogito, z } from "./core.ts";
+/*import { cogito, z } from "./core.ts";
 import { Func } from "./function.ts";
 import { FunctionSet } from "./functionset.ts";
 import * as trpc from "https://esm.sh/@trpc/server@10.36.0";

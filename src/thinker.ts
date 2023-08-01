@@ -1,4 +1,4 @@
-import { z } from "npm:zod";
+import { z } from "./deps.ts";
 import { CallableCreateOption } from "./type.ts";
 import { Func } from "./func.ts";
 import { FunctionSet, FunctionSetOption } from "./functionset.ts";
@@ -33,21 +33,19 @@ export class Thinker<Input, Output> extends Func<Input, Output> {
     };
     super(name, description, input, output, func);
   }
-
-  static create<Input, Output>(
-    name: string,
-    options: ThinkerOptions<Input, Output>,
-  ) {
-    const functionSet = FunctionSet.create(options.functions);
-
-    return new Thinker(
-      name,
-      options.description,
-      options.input,
-      options.output,
-      functionSet,
-    );
-  }
 }
 
-export const thinker = Thinker.create;
+export const thinker = <Input, Output>(
+  name: string,
+  options: ThinkerOptions<Input, Output>,
+) => {
+  const functionSet = FunctionSet.create(options.functions);
+
+  return new Thinker(
+    name,
+    options.description,
+    options.input,
+    options.output,
+    functionSet,
+  );
+};

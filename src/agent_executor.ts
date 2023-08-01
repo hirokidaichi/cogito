@@ -66,11 +66,13 @@ const hasJsonQuote = (str: string): boolean => {
   return !!str.match(/```json/);
 };
 
-const isJSONLike = (str: string): boolean => {
-  // {で始まって}で終わるもの
-  // [で始まって]で終わるもの
-  // "で始まって"で終わるものを判定する。
-  return !!str.match(/^(?:\{.*}|\[.*\]|".*")$/);
+const isJSON = (str: string): boolean => {
+  try {
+    JSON.parse(str);
+    return true;
+  } catch (_e) {
+    return false;
+  }
 };
 
 export class AgentExecutorWithResult<Output> {
@@ -149,13 +151,12 @@ export class AgentExecutorWithResult<Output> {
     if (hasJsonQuote(message)) {
       return await this.parser.parse(message);
     } else {
-      const messageObject = isJSONLike(message) ? JSON.parse(message) : message;
+      const messageObject = isJSON(message) ? JSON.parse(message) : message;
       return await this.outputSchema.parse(messageObject);
     }
   }
   private async parseLastMessage(): Promise<Result<Output>> {
     const last = this.lastMessage();
-    console.log(last);
     try {
       const parsed = await this.parse(last);
       return { isSuccess: true, value: parsed };
