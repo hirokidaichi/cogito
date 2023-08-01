@@ -62,6 +62,17 @@ export class AgentExecutor {
   }
 }
 
+const hasJsonQuote = (str: string): boolean => {
+  return !!str.match(/```json/);
+};
+
+const isJSONLike = (str: string): boolean => {
+  // {で始まって}で終わるもの
+  // [で始まって]で終わるもの
+  // "で始まって"で終わるものを判定する。
+  return !!str.match(/^(?:\{.*}|\[.*\]|".*")$/);
+};
+
 export class AgentExecutorWithResult<Output> {
   private parser: StructuredOutputParser<z.ZodType<Output>>;
   constructor(
@@ -134,10 +145,19 @@ export class AgentExecutorWithResult<Output> {
     }
     throw new Error("parse error");
   }
+  private async parse(message: string): Promise<Output> {
+    if (hasJsonQuote(message)) {
+      return await this.parser.parse(message);
+    } else {
+      const messageObject = isJSONLike(message) ? JSON.parse(message) : message;
+      return await this.outputSchema.parse(messageObject);
+    }
+  }
   private async parseLastMessage(): Promise<Result<Output>> {
     const last = this.lastMessage();
+    console.log(last);
     try {
-      const parsed = await this.parser.parse(last);
+      const parsed = await this.parse(last);
       return { isSuccess: true, value: parsed };
     } catch (e) {
       return { isSuccess: false, error: e };

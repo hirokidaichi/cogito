@@ -3,8 +3,10 @@ import { CallableCreateOption } from "./type.ts";
 import { Func } from "./func.ts";
 import { FunctionSet, FunctionSetOption } from "./functionset.ts";
 import { SandboxWorker } from "./sandboxworker.ts";
-import { Agent } from "./agent.ts";
 import { logger } from "./logger.ts";
+import { memoizePersistent } from "./memoize.ts";
+import { thinker } from "./thinker.ts";
+
 function extractCode(input: string): string | null {
   const match = input.match(/```(?:javascript|typescript)([\s\S]*?)```/);
   return match ? match[1].trim() : null;
@@ -16,6 +18,19 @@ type ProgrammerOptions<
 > = CallableCreateOption<Input, Output> & FunctionSetOption & {
   autoStop?: boolean;
 };
+
+const coding = memoizePersistent(thinker("coding", {
+  description: `あなたは優秀なプログラマーです。
+    ・{functions}で与えられた関数がすでに実装され使える状態です。
+    ・{define}で与えられた定義に従い、その関数を実装してください。
+    外部関数のimportはできません。与えられた関数以外の関数が実装に必要な場合自分で実装をしてください。
+    `,
+  input: z.object({
+    define: z.string(),
+    functions: z.string(),
+  }),
+  output: z.string().describe("実装したコードを文字列として返す"),
+}));
 
 export class Programmer<Input, Output> extends Func<Input, Output> {
   public sandbox?: SandboxWorker;
@@ -43,15 +58,13 @@ export class Programmer<Input, Output> extends Func<Input, Output> {
   }
 
   public async code() {
-    const def = this.functions.asTypeScript();
-    const thinkerDef = this.asTypeScript();
-    const agent = Agent.create();
-    agent.addSystemMessage(
-      "あなたは優秀なプログラマーです。以下の定義の関数がすでに実装され使える状態です。ユーザーの指示に従ってTypeScriptを生成してください。外部関数のimportはできません。与えられた関数以外の関数が実装に必要な場合自分で実装をしてください。",
-    );
-    agent.addSystemMessage(`${def}`);
-    const res = await agent.chat(`次の関数を実装してください：${thinkerDef}`);
-    const code = extractCode(res?.content || "");
+    const define = this.asTypeScript();
+    const functions = this.functions.asTypeScript();
+    const result = await coding.call({
+      define,
+      functions,
+    });
+    const code = extractCode(result);
     return code;
   }
   public async compile() {

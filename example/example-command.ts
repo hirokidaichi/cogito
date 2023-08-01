@@ -16,3 +16,16 @@ const res = await tree.call({
   extensions: [".ts", ".js"],
 });
 console.log(res.stdout);
+
+const gitadd = cogito.command("git add", {
+  description: "git add",
+  input: z.object({
+    path: z.string(),
+  }),
+  help: "--help",
+});
+
+const res2 = await gitadd.call({
+  path: ".",
+});
+console.log(res2.stdout);

@@ -42,11 +42,17 @@ type CommandResponse = z.infer<typeof CommandResponseSchema>;
 
 const buffToString = (buf: Uint8Array) => new TextDecoder().decode(buf);
 
+const commandSplit = (commandString: string) => {
+  const args = commandString.split(" ");
+  const command = args.shift() || commandString;
+  return { command, rest: args };
+};
 const doCommand = async (commandPath: string, args: string[]) => {
-  const command = new Deno.Command(commandPath, {
-    args: args,
+  const { command, rest } = commandSplit(commandPath);
+  const commandExecutor = new Deno.Command(command, {
+    args: [...rest, ...args],
   });
-  const { code, stdout, stderr } = await command.output();
+  const { code, stdout, stderr } = await commandExecutor.output();
   const stdoutStr = buffToString(stdout);
   const stderrStr = buffToString(stderr);
   return {
