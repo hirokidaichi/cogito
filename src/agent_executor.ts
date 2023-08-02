@@ -38,7 +38,6 @@ export class AgentExecutor {
     }
   }
   public setup() {
-    this.agent.addSystemMessage("You are a great assistant.");
     this.agent.addUserMessage(this.prompt);
     this.agent.addSystemMessage(answeringMessage());
   }
@@ -49,6 +48,7 @@ export class AgentExecutor {
       const res = await this.agent.chat();
       if (res == undefined) break;
       if (!res.function_call) break;
+
       const { name, arguments: args } = res.function_call;
       if (name && this.agent.functions.has(name)) {
         const result = await this.safeCall(name, args || "");

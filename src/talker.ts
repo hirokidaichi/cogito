@@ -12,7 +12,6 @@ type TalkerOptions<
 } & FunctionSetOption;
 
 export class Talker<Input> extends Func<Input, string> {
-  public static readonly PROMPT = "次の指示に従い出力しなさい。";
   constructor(
     public name: string,
     public description: string,
@@ -23,10 +22,9 @@ export class Talker<Input> extends Func<Input, string> {
       const agent = Agent.create({
         functions: this.functions,
       });
-      const prompt =
-        `${Talker.PROMPT}\n\n名前:${this.name}\n\n指示:${this.description}\n\n 入力:${
-          JSON.stringify(input)
-        }`;
+      const prompt = `名前:${this.name}\n\n指示:${this.description}\n\n 入力:${
+        JSON.stringify(input)
+      }`;
 
       const executor = new AgentExecutor(agent, prompt);
       return await executor.exec() || "";
