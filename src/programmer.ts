@@ -19,9 +19,9 @@ type ProgrammerOptions<
   autoStop?: boolean;
 };
 
-const coding = memoizePersistent(talker("codeProgram", {
+const coding = talker("codeProgram", {
   description: `あなたは優秀なプログラマーです。
-    ・{functions}で与えられた関数がすでに実装され使える状態です。
+    ・{functions}で与えられた関数がすでに実装され使える状態です。再定義をしないでください。
     ・{define}で与えられた定義に従い、その関数を実装してください。
     外部関数のimportはできません。与えられた関数以外の関数が実装に必要な場合自分で実装をしてください。
     `,
@@ -29,7 +29,7 @@ const coding = memoizePersistent(talker("codeProgram", {
     define: z.string(),
     functions: z.string(),
   }),
-}));
+});
 
 export class Programmer<Input, Output> extends Func<Input, Output> {
   public sandbox?: SandboxWorker;

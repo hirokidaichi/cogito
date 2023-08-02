@@ -5,12 +5,11 @@ const THEME = "チーム システム デザイン データ コーポレート"
 const Keyword = z.object({
   theme: z.string(),
   category: z.string(),
-  content: z.string(),
 });
 
 const themeToCategory = cogito.thinker("themeToCategory", {
   description:
-    "与えられた{theme}に関して、ソフトウェアサービスを提供する企業が高速な仮説検証を実現するのに必要となる要素についてキーワードとその詳細を返す",
+    "与えられた{theme}に関して、ソフトウェアサービスを提供する企業が高速な仮説検証を実現するのに必要となる要素についてキーワードを8つ生成し返す",
   input: z.object({
     theme: z.string(),
   }),

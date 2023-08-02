@@ -1,134 +1,104 @@
 import { settings } from "./settings.ts";
 import { Agent } from "./agent.ts";
-import { StructuredOutputParser, z } from "./deps.ts";
+import { z } from "./deps.ts";
+import { Parser } from "./parser.ts";
 import { compactForGoal } from "./chain.ts";
 import { logger } from "./logger.ts";
+
 const answeringMessage = () =>
   `You need to answer in ${settings.get("language")}`;
 
-type Success<T> = {
-  isSuccess: true;
-  value: T;
-};
-
-type Failure<E = Error> = {
-  isSuccess: false;
-  error: E;
-};
-
-type Result<T, E = Error> = Success<T> | Failure<E>;
-
-type Callback<T> = () => Promise<T>;
-
-const trying = async <T>(callback: Callback<T>): Promise<Result<T>> => {
-  try {
-    const result = await callback();
-    return {
-      isSuccess: true,
-      value: result,
-    };
-  } catch (e) {
-    logger.warn(e);
-    return {
-      isSuccess: false,
-      error: e,
-    };
-  }
-  //return await callback();
-};
 export class AgentExecutor {
   constructor(
     public agent: Agent,
     public prompt: string,
   ) {}
-  public async exec() {
-    this.agent.addSystemMessage("You are a great assistant.");
-    this.agent.addUserMessage(this.prompt);
-    this.agent.addSystemMessage(answeringMessage());
-    while (true) {
-      const res = await this.agent.chat();
-      if (res == undefined) break;
-      if (res.function_call) {
-        const { name, arguments: args } = res.function_call;
-        if (name && this.agent.functions.has(name)) {
-          const result = await this.agent.functions.call(name, args || "");
-          this.agent.addFunctionMessage(name, JSON.stringify(result || ""));
-          continue;
-        }
-      } else {
-        return res.content;
-      }
-    }
-  }
-}
-
-const hasJsonQuote = (str: string): boolean => {
-  return !!str.match(/```json/);
-};
-
-const isJSON = (str: string): boolean => {
-  try {
-    JSON.parse(str);
-    return true;
-  } catch (_e) {
-    return false;
-  }
-};
-
-export class AgentExecutorWithResult<Output> {
-  private parser: StructuredOutputParser<z.ZodType<Output>>;
-  constructor(
-    public agent: Agent,
-    public prompt: string,
-    public outputSchema: z.ZodType<Output>,
-  ) {
-    this.parser = new StructuredOutputParser(outputSchema);
-  }
-  public lastMessage() {
-    return this.agent.messages.at(-1)?.content || "";
-  }
-  public outputParser() {
-    return new StructuredOutputParser(this.outputSchema);
-  }
   public async compact(output: string) {
     if (output.length < 5000) {
       return output;
     }
-    const instruction = this.parser.getFormatInstructions();
     const lang = answeringMessage();
-    const goal = `${this.prompt}\n${instruction}\n${lang}`;
+    const goal = `${this.prompt}\n\n${lang}`;
     const compactResult = await compactForGoal(goal, output);
     return compactResult;
   }
-  public async exec(): Promise<Output> {
-    const instruction = this.parser.getFormatInstructions();
+  public lastMessage() {
+    return this.agent.messages.at(-1)?.content || "";
+  }
+
+  public async safeCall(name: string, args: string) {
+    try {
+      const result = await this.agent.functions.call(name, args);
+      return JSON.stringify({
+        isSuccess: true,
+        value: result,
+      });
+    } catch (e) {
+      return JSON.stringify({
+        isSuccess: false,
+        error: e,
+      });
+    }
+  }
+  public setup() {
+    this.agent.addSystemMessage("You are a great assistant.");
     this.agent.addUserMessage(this.prompt);
     this.agent.addSystemMessage(answeringMessage());
-    this.agent.addSystemMessage(
-      "Please call the necessary tools as needed, consider the answer, and ultimately generate a JSON in the specified format.",
-    );
+  }
 
-    this.agent.addSystemMessage(instruction);
+  public async exec() {
+    this.setup();
     while (true) {
       const res = await this.agent.chat();
       if (res == undefined) break;
       if (!res.function_call) break;
       const { name, arguments: args } = res.function_call;
       if (name && this.agent.functions.has(name)) {
-        const result = await trying(async () => {
-          return await this.agent.functions.call(name, args || "");
-        });
-        const value = result.isSuccess ? result.value : result;
-
+        const result = await this.safeCall(name, args || "");
         this.agent.addFunctionMessage(
           name,
-          await this.compact(JSON.stringify(value)),
+          await this.compact(result),
         );
-        this.agent.addSystemMessage(instruction);
         continue;
       }
       this.agent.addSystemMessage(`Function[${name}] is not found.`);
     }
+    return this.lastMessage();
+  }
+}
+
+export class AgentExecutorWithResult<Output> extends AgentExecutor {
+  private parser: Parser<Output>;
+  constructor(
+    public agent: Agent,
+    public prompt: string,
+    public outputSchema: z.ZodType<Output>,
+  ) {
+    super(agent, prompt);
+    this.parser = new Parser(outputSchema);
+  }
+
+  public async compact(output: string) {
+    if (output.length < 5000) {
+      return output;
+    }
+    const instruction = this.parser.instructions();
+    const lang = answeringMessage();
+    const goal = `${this.prompt}\n${instruction}\n${lang}`;
+    const compactResult = await compactForGoal(goal, output);
+    return compactResult;
+  }
+  public setup(): void {
+    const instruction = this.parser.instructions();
+    this.agent.addUserMessage(this.prompt);
+    this.agent.addSystemMessage(answeringMessage());
+    this.agent.addSystemMessage(
+      "Please call the necessary tools as needed, consider the answer, and ultimately generate a JSON in the specified format.",
+    );
+    this.agent.addSystemMessage(instruction);
+  }
+  public async output(): Promise<Output> {
+    await this.exec();
     return await this.parseLastMessageWithRetryCount(
       settings.get("agent_retry_count"),
     );
@@ -136,32 +106,24 @@ export class AgentExecutorWithResult<Output> {
   private async parseLastMessageWithRetryCount(count: number) {
     for (let i = 0; i < count; i++) {
       const res = await this.parseLastMessage();
-      if (res.isSuccess) {
-        return res.value;
+      if (res.success) {
+        return res.data;
       } else {
-        logger.warn(`retry:${i + 1}`, res.error.message);
-        this.agent.addSystemMessage(this.parser.getFormatInstructions());
-        this.agent.addSystemMessage(res.error.message);
+        const error = res.error;
+        logger.warn(`retry:${i + 1}:\n${error.message}`);
+        this.agent.addSystemMessage(
+          `Parse Error :\n ${error.message}\n\nPlease try again.`,
+        );
         await this.agent.chat();
       }
     }
     throw new Error("parse error");
   }
-  private async parse(message: string): Promise<Output> {
-    if (hasJsonQuote(message)) {
-      return await this.parser.parse(message);
-    } else {
-      const messageObject = isJSON(message) ? JSON.parse(message) : message;
-      return await this.outputSchema.parse(messageObject);
-    }
+  private async parse(message: string) {
+    return await this.parser.parse(message);
   }
-  private async parseLastMessage(): Promise<Result<Output>> {
+  private async parseLastMessage() {
     const last = this.lastMessage();
-    try {
-      const parsed = await this.parse(last);
-      return { isSuccess: true, value: parsed };
-    } catch (e) {
-      return { isSuccess: false, error: e };
-    }
+    return await this.parse(last);
   }
 }

@@ -29,7 +29,7 @@ export class Thinker<Input, Output> extends Func<Input, Output> {
       })`;
 
       const executor = new AgentExecutorWithResult(agent, prompt, output);
-      return await executor.exec();
+      return await executor.output();
     };
     super(name, description, input, output, func);
   }

@@ -1,4 +1,5 @@
 import { cogito, z } from "../mod.ts";
+cogito.logger.verbose = false;
 import { Input } from "https://deno.land/x/cliffy@v1.0.0-rc.2/prompt/mod.ts";
 
 const askHuman = cogito.func("ask-human", {
@@ -12,15 +13,16 @@ const askHuman = cogito.func("ask-human", {
 
 const interview = cogito.talker("interview", {
   description:
-    "入力された項目について知るために、インタビューを行なってプロフィール文章を作ってください。",
+    `あなたは優れたインタビューアーです。相手とアイスブレイクも交えながら、次の事柄についてインタビューを繰り返し、その上で紹介文を作成してください。必要があれば、掘り下げて追加で質問もしてください。`,
   input: z.array(z.string()),
   functions: [askHuman],
 });
 
 const result = await interview.call([
-  "今まで一番おどろいたこと",
+  "経歴",
+  "野望",
   "最近の趣味",
-  "なぜプログラミングを始めたのか",
+  "悩み",
 ]);
 
 console.log(result);
