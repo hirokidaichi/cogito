@@ -3,7 +3,8 @@ import { CallableCreateOption } from "./type.ts";
 import { Func } from "./func.ts";
 import { FunctionSet, FunctionSetOption } from "./functionset.ts";
 import { Agent } from "./agent.ts";
-import { AgentExecutorWithResult } from "./agent_executor.ts";
+import { AgentExecutorWithResult } from "./agent_executor_with_result.ts";
+
 type ThinkerOptions<
   Input,
   Output,
