@@ -1,4 +1,3 @@
-import { IStore, MemoryStore } from "./cache.ts";
 import { z } from "npm:zod";
 import { CallableCreateOption } from "./type.ts";
 import { Func } from "./func.ts";
