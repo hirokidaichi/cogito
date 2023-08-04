@@ -3,8 +3,9 @@ import { cogito, z } from "../mod.ts";
 const code = `
 async function hello1() {
   console.log(await add({x:10,y:20}));
+  throw new Error("hello1");
   return await "hello1";
-}
+};
 `;
 
 const add = cogito.func("add", {
@@ -20,9 +21,15 @@ const sandbox = cogito.sandbox("hello1", {
   code,
   functions: [add],
 });
-
-await sandbox.start();
-const result = await sandbox.call("hello1");
-console.log(result);
-
-sandbox.terminate();
+try {
+  await sandbox.start();
+  const result = await sandbox.call("hello1");
+  console.log(result);
+  await sandbox.terminate();
+} catch (error) {
+  console.log("エラーをキャッチしたよ", error.message);
+}
+console.log("勝手に止めないでね。");
+setInterval(() => {
+  console.log("動いてるよ");
+}, 1000);

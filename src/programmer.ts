@@ -1,10 +1,10 @@
+import { IStore, MemoryStore } from "./cache.ts";
 import { z } from "npm:zod";
 import { CallableCreateOption } from "./type.ts";
 import { Func } from "./func.ts";
 import { FunctionSet, FunctionSetOption } from "./functionset.ts";
 import { SandboxWorker } from "./sandboxworker.ts";
 import { logger } from "./logger.ts";
-import { memoizePersistent } from "./memoize.ts";
 import { talker } from "./talker.ts";
 
 function extractCode(input: string): string | null {
@@ -31,8 +31,41 @@ const coding = talker("codeProgram", {
   }),
 });
 
+const fixCode = talker("fixCode", {
+  description:
+    `あなたは優秀なプログラマーです。エラーを読んで修正してください。`,
+  input: z.object({
+    code: z.string(),
+    error: z.string(),
+  }),
+});
+
+const compileSandbox = async (
+  name: string,
+  code: string,
+  functions: FunctionSet,
+): Promise<SandboxWorker> => {
+  const sandbox = SandboxWorker.create(name, {
+    code,
+    functions,
+  });
+  try {
+    await sandbox.start();
+    return sandbox;
+  } catch (e) {
+    logger.warn("compile error:", e);
+    const error = e.message;
+    const fix = await fixCode.call({
+      code,
+      error,
+    });
+    return await compileSandbox(name, extractCode(fix) || "", functions);
+  }
+};
+
 export class Programmer<Input, Output> extends Func<Input, Output> {
   public sandbox?: SandboxWorker;
+  private executableCode?: string;
   constructor(
     public name: string,
     public description: string,
@@ -57,6 +90,7 @@ export class Programmer<Input, Output> extends Func<Input, Output> {
   }
 
   public async code() {
+    if (this.executableCode) return this.executableCode;
     const define = this.asTypeScript();
     const functions = this.functions.asTypeScript();
     const result = await coding.call({
@@ -66,22 +100,18 @@ export class Programmer<Input, Output> extends Func<Input, Output> {
     const code = extractCode(result);
     return code;
   }
+
   public async compile() {
     if (this.sandbox) return this.sandbox;
 
     const code = await this.code() || "";
-    logger.log({
-      level: "debug",
-      name: this.name,
-      type: "code",
-      code,
-    });
 
-    const sandbox = SandboxWorker.create(this.name, {
-      code,
-      functions: this.functions,
-    });
-    await sandbox.start();
+    const sandbox = await compileSandbox(this.name, code, this.functions);
+
+    if (sandbox.isRunning()) {
+      this.executableCode = sandbox.code;
+    }
+
     if (!this.autoStop) {
       this.sandbox = sandbox;
     }

@@ -1,6 +1,7 @@
 import { RPCProvider } from "./rpcprovider.ts";
 import { FunctionSet, FunctionSetOption } from "./functionset.ts";
 import { FuncAny } from "./func.ts";
+import { logger } from "./logger.ts";
 
 type SandboxOptions = {
   code: string;
@@ -24,6 +25,7 @@ const rpc = new RPCProvider("${entry}", self);
 ${importing}
 rpc.register("${entry}", ${entry});
 rpc.observe();
+
   `;
 };
 
@@ -34,7 +36,7 @@ const composeURL = async (
 ) => {
   const libCode = await getRPCProviderCode();
   const setupCode = createRPCSetupCode(entry, funcList);
-  const fullCode = [libCode, setupCode, code];
+  const fullCode = [libCode, setupCode, code, "\nrpc.setup();"];
   const blob = new Blob(fullCode, {
     type: "application/typescript",
   });
@@ -42,13 +44,18 @@ const composeURL = async (
   return url;
 };
 
-type SandboxWorkerStatus = "ready" | "running" | "calling" | "terminated";
+type SandboxWorkerStatus =
+  | "ready"
+  | "running"
+  | "calling"
+  | "terminated"
+  | "error";
 
 export class SandboxWorker {
   public status: SandboxWorkerStatus = "ready";
   private rpc?: RPCProvider;
   private worker?: Worker;
-
+  public error?: string;
   constructor(
     public entry: string,
     public code: string,
@@ -64,13 +71,13 @@ export class SandboxWorker {
   public isTerminated() {
     return this.status === "terminated";
   }
+  public isError() {
+    return this.status === "error";
+  }
 
-  public async start() {
+  public async start(): Promise<void> {
     if (this.status !== "ready") {
       throw new Error("sandbox is not ready");
-    }
-    if (this.worker) {
-      return this.worker;
     }
     const code = await composeURL(
       this.entry,
@@ -90,9 +97,26 @@ export class SandboxWorker {
       rpc.register(func.name, func.toFunction());
     }
     rpc.observe();
-    this.worker = worker;
     this.rpc = rpc;
-    this.status = "running";
+    return new Promise<void>((resolve, reject) => {
+      worker.addEventListener("message", (e) => {
+        if (e.data === "ready") {
+          this.status = "running";
+          this.worker = worker;
+          resolve();
+          return false;
+        }
+      });
+      worker.addEventListener("error", (e) => {
+        this.status = "error";
+        this.error = e.message;
+        worker.terminate();
+        reject(e);
+        e.preventDefault();
+        logger.warn(`Sandbox Error: ${e.message}`);
+        return true;
+      });
+    });
   }
   public async call(...parameters: unknown[]) {
     if (this.status !== "running" || !this.rpc) {

@@ -1,5 +1,6 @@
 import { cogito, z } from "../mod.ts";
 cogito.logger.verbose = true;
+
 const findGreatestCommonDivisors = cogito.programmer(
   "gcd",
   {

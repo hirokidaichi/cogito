@@ -50,6 +50,9 @@ export class RPCProvider {
       return response;
     };
   }
+  public setup() {
+    this.core.postMessage("ready");
+  }
   public async call(type: string, ...parameters: unknown[]) {
     return await this.procedure(type)(...parameters);
   }
