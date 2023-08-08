@@ -1,37 +1,5 @@
 import { z } from "./deps.ts";
-import { settings } from "./settings.ts";
-import { Func } from "./func.ts";
-import { thinker } from "./thinker.ts";
-import { compactForGoal } from "./chain.ts";
-
-type HelpWay = "--help" | "subcommand" | "man";
-
-export type CommandCreateOption<Input> = {
-  description?: string;
-  input: z.ZodType<Input>;
-  help: HelpWay;
-};
-const _token = settings;
-
-const helpByWay = async (commandPath: string, help: HelpWay) => {
-  if (help === "--help") {
-    return await doCommand(commandPath, ["--help"]);
-  }
-  if (help === "subcommand") {
-    return await doCommand(commandPath, ["help"]);
-  }
-  if (help === "man") {
-    return await doCommand("man", [commandPath]);
-  }
-};
-const getHelp = async (commandPath: string, help: HelpWay) => {
-  const result = await helpByWay(commandPath, help);
-  if (!result || result.code !== 0) {
-    const error = result?.stderr ?? "";
-    throw new Error("help not found:" + error);
-  }
-  return result.stdout;
-};
+import { Func, func } from "./func.ts";
 
 const CommandResponseSchema = z.object({
   code: z.number(),
@@ -42,15 +10,9 @@ type CommandResponse = z.infer<typeof CommandResponseSchema>;
 
 const buffToString = (buf: Uint8Array) => new TextDecoder().decode(buf);
 
-const commandSplit = (commandString: string) => {
-  const args = commandString.split(" ");
-  const command = args.shift() || commandString;
-  return { command, rest: args };
-};
-const doCommand = async (commandPath: string, args: string[]) => {
-  const { command, rest } = commandSplit(commandPath);
+const doCommand = async (command: string, args: string[]) => {
   const commandExecutor = new Deno.Command(command, {
-    args: [...rest, ...args],
+    args,
   });
   const { code, stdout, stderr } = await commandExecutor.output();
   const stdoutStr = buffToString(stdout);
@@ -62,71 +24,111 @@ const doCommand = async (commandPath: string, args: string[]) => {
   };
 };
 
-const commandToFunctionName = (command: string) => {
-  return command.replace(/-/g, "_") + "_command";
-};
+type ParsedResult = (string | { key: string })[];
 
-export class Command<Input> extends Func<Input, CommandResponse> {
-  private helpText?: string;
+function parseCommand(input: string): ParsedResult {
+  const parts = input.split(/\s+/);
+  const result: ParsedResult = [];
 
-  constructor(
-    public command: string,
-    public name: string,
-    public description: string,
-    public input: z.ZodType<Input>,
-    public help: HelpWay,
-  ) {
-    const func = async (input: Input): Promise<CommandResponse> => {
-      const args = await this.thinkCommandArguments(input);
-      return await doCommand(this.command, args);
-    };
-    super(name, description, input, CommandResponseSchema, func);
-  }
-  async compactHelp() {
-    if (this.helpText) {
-      return this.helpText;
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part.startsWith("{") && part.endsWith("}")) {
+      result.push({ key: part.slice(1, -1) });
+    } else {
+      result.push(part);
     }
-    const helpText = await this.getHelp();
-    if (helpText.length < settings.get("too_long_length")) {
-      return helpText;
-    }
-    const input = JSON.stringify(this.parameters);
-    const goal =
-      ` Create command arguments according to the the input schema.\n INPUT SCHEMA: ${input}`;
-    const shortHelp = await compactForGoal(goal, "HELP:" + helpText);
-    this.helpText = shortHelp;
-    return this.helpText;
-  }
-  async thinkCommandArguments(input: Input) {
-    const helpText = await this.compactHelp();
-    console.log(helpText);
-    const optionThinker = thinker(this.name + "_option_thinker", {
-      description:
-        `Generate the ${this.command} command arguments according to the input data.
-      If you want to execute the command "${this.command} -a -b 2", please return the array ["-a", "-b", "2"].
-      Also, please read the help carefully and consider it.
-    
-      HELP: ${helpText}`,
-      input: this.input,
-      output: z.array(z.string()),
-    });
-    return await optionThinker.call(input);
   }
 
-  async getHelp(): Promise<string> {
-    return await getHelp(this.command, this.help);
-  }
+  return result;
 }
 
-export const command = <Input>(
-  command: string,
-  options: CommandCreateOption<Input>,
-) => {
-  return new Command(
-    command,
-    commandToFunctionName(command),
-    options.description ?? "",
-    options.input,
-    options.help,
-  );
+type ExtractKeys<S> = S extends `${infer _Start}{${infer Key}}${infer Rest}`
+  ? Key | ExtractKeys<Rest>
+  : never;
+
+// キーを基にオブジェクトの型を生成
+type ToObjectType<T extends string> = {
+  [K in T]: string;
 };
+
+type CommandExprToType<Expr extends string> = ToObjectType<ExtractKeys<Expr>>;
+
+function getParameters(parsed: ParsedResult) {
+  return parsed.filter((p): p is { key: string } => typeof p === "object").map((
+    p,
+  ) => p.key);
+}
+function getSchema(parsed: ParsedResult) {
+  const parameters = getParameters(parsed);
+
+  const obj: { [key: string]: z.ZodString } = {};
+  for (const key of parameters) {
+    obj[key] = z.string();
+  }
+  return z.object(obj);
+}
+
+const command_auto = <CommandExpr extends string>(
+  commandExpr: CommandExpr,
+) => {
+  type ReturnType = CommandExprToType<CommandExpr>;
+  const parsed = parseCommand(commandExpr);
+  const schema = getSchema(parsed);
+  const name = parsed.at(0);
+
+  const ret: Func<ReturnType, CommandResponse> = func(`command_${name}`, {
+    description: `Execute Command: ${commandExpr}`,
+    //@ts-ignore ここでは型が合わないが、実際には合う
+    input: schema,
+    output: CommandResponseSchema,
+    callback: async (input: ReturnType) => {
+      const [command, ...args] = parsed.map((p) =>
+        //@ts-ignore ここでは型が合わないが、実際には合う
+        typeof p === "object" ? input[p.key] : p
+      );
+      return await doCommand(command, args);
+    },
+  });
+  return ret;
+};
+
+const command_manual = <Input>(
+  commandExpr: string,
+  options: { description?: string; input: z.ZodType<Input> },
+) => {
+  const parsed = parseCommand(commandExpr);
+  const name = parsed.at(0);
+
+  const ret: Func<Input, CommandResponse> = func(`command_${name}`, {
+    description: `Execute Command: ${commandExpr}`,
+    input: options.input,
+    output: CommandResponseSchema,
+    callback: async (input: Input) => {
+      const [command, ...args] = parsed.map((p) =>
+        //@ts-ignore ここでは型が合わないが、実際には合う
+        typeof p === "object" ? String(input[p.key]) : p
+      );
+      return await doCommand(command, args);
+    },
+  });
+  return ret;
+};
+
+export function command<CommandExpr extends string>(
+  commandExpr: CommandExpr,
+): Func<CommandExprToType<CommandExpr>, CommandResponse>;
+
+export function command<Input>(
+  commandExpr: string,
+  options: { description?: string; input: z.ZodType<Input> },
+): Func<Input, CommandResponse>;
+
+// deno-lint-ignore no-explicit-any
+export function command(...args: any[]) {
+  if (args.length === 1) {
+    return command_auto(args[0]);
+  }
+  if (args.length === 2) {
+    return command_manual(args[0], args[1]);
+  }
+}
