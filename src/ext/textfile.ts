@@ -1,4 +1,4 @@
-import { cogito, z } from "./core.ts";
+import { cogito, z } from "../core.ts";
 
 const Result = z.enum(["success", "failure"]);
 

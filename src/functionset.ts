@@ -1,17 +1,17 @@
-import { FuncAny } from "./func.ts";
+import type { IFunctionAny } from "./type.ts";
 import { gzipSearch } from "./gzipseeker.ts";
 export type FunctionSetOption = {
-  functions?: FunctionSet | FuncAny[];
+  functions?: FunctionSet | IFunctionAny[];
 };
 export class FunctionSet {
-  constructor(public functions: Map<string, FuncAny> = new Map()) {}
+  constructor(public functions: Map<string, IFunctionAny> = new Map()) {}
 
-  public add(...funcs: FuncAny[]) {
+  public add(...funcs: IFunctionAny[]) {
     funcs.forEach((func) => this.functions.set(func.name, func));
 
     return this;
   }
-  public remove(func: FuncAny) {
+  public remove(func: IFunctionAny) {
     this.functions.delete(func.name);
   }
   public get(name: string) {
@@ -53,7 +53,7 @@ export class FunctionSet {
   public search(query: string, topK: number): FunctionSet {
     const result = gzipSearch(query, this.semantics(), topK);
 
-    const list: FuncAny[] = [];
+    const list: IFunctionAny[] = [];
     for (const r of result) {
       const func = this.get(r.name);
       if (func) {
@@ -63,7 +63,7 @@ export class FunctionSet {
 
     return FunctionSet.create(list);
   }
-  static create(options: FuncAny[] | FunctionSet | undefined) {
+  static create(options: IFunctionAny[] | FunctionSet | undefined) {
     if (!options) {
       return new FunctionSet();
     }

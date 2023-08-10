@@ -1,5 +1,5 @@
-import { Func, func } from "./func.ts";
-import { IStore, MemoryStore, PersistentStore } from "./cache.ts";
+import { Func, func } from "../func.ts";
+import { IStore, MemoryStore, PersistentStore } from "../cache.ts";
 
 export const memoize = <Input, Output>(
   target: Func<Input, Output>,

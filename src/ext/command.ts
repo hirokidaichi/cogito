@@ -1,5 +1,5 @@
-import { z } from "./deps.ts";
-import { Func, func } from "./func.ts";
+import { cogito, z } from "../core.ts";
+import { Func } from "../func.ts";
 
 const CommandResponseSchema = z.object({
   code: z.number(),
@@ -80,7 +80,7 @@ const command_auto = <CommandExpr extends string>(
   const schema = getSchema(parsed);
   const name = parsed.at(0);
 
-  const ret: Func<InputType, CommandResponse> = func(`command_${name}`, {
+  const ret: Func<InputType, CommandResponse> = cogito.func(`command_${name}`, {
     description: `Execute Command: ${commandExpr}`,
     //@ts-ignore ここでは型が合わないが、実際には合う
     input: schema,
@@ -103,7 +103,7 @@ const command_manual = <Input>(
   const parsed = parseCommand(commandExpr);
   const name = parsed.at(0);
 
-  const ret: Func<Input, CommandResponse> = func(`command_${name}`, {
+  const ret: Func<Input, CommandResponse> = cogito.func(`command_${name}`, {
     description: `Execute Command: ${commandExpr}`,
     input: options.input,
     output: CommandResponseSchema,

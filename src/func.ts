@@ -1,20 +1,8 @@
-import {
-  ChatCompletionRequestMessageRoleEnum,
-  ChatCompletionResponseMessage,
-  printNode,
-  z,
-  zodToJsonSchema,
-  zodToTs,
-} from "./deps.ts";
+import { printNode, z, zodToJsonSchema, zodToTs } from "./deps.ts";
 
-import { CallableCreateOption } from "./type.ts";
+import { CallableCreateOption, IFunction } from "./type.ts";
 
 import { logger } from "./logger.ts";
-const functionMessage = (name: string, content: string) => ({
-  name,
-  role: ChatCompletionRequestMessageRoleEnum.Function,
-  content,
-});
 
 export type FuncCallback<
   Input,
@@ -35,7 +23,7 @@ const zodToTypeScript = (schema: z.ZodTypeAny, name: string) => {
   return printNode(node);
 };
 
-export class Func<Input, Output> {
+export class Func<Input, Output> implements IFunction<Input, Output> {
   constructor(
     public name: string,
     public description: string,
@@ -65,12 +53,6 @@ export class Func<Input, Output> {
     return async (input: Input): Promise<Output> => {
       return await this.call(input);
     };
-  }
-  public async execToMessage(
-    argumentsString: string,
-  ): Promise<ChatCompletionResponseMessage> {
-    const result = this.exec(argumentsString);
-    return await functionMessage(this.name, JSON.stringify(result));
   }
   public async exec(arg: string) {
     const obj = JSON.parse(arg);

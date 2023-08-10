@@ -1,6 +1,6 @@
+import type { IFunctionAny } from "./type.ts";
 import { RPCProvider } from "./rpcprovider.ts";
 import { FunctionSet, FunctionSetOption } from "./functionset.ts";
-import { FuncAny } from "./func.ts";
 import { logger } from "./logger.ts";
 
 type SandboxOptions = {
@@ -13,7 +13,7 @@ const getRPCProviderCode = async () => {
   return await lib.text();
 };
 
-const createRPCSetupCode = (entry: string, funcList: FuncAny[]) => {
+const createRPCSetupCode = (entry: string, funcList: IFunctionAny[]) => {
   const importing = funcList.map((func) => {
     const name = func.name;
     return func.asTypeScript(
@@ -32,7 +32,7 @@ rpc.observe();
 const composeURL = async (
   entry: string,
   code: string,
-  funcList: FuncAny[],
+  funcList: IFunctionAny[],
 ) => {
   const libCode = await getRPCProviderCode();
   const setupCode = createRPCSetupCode(entry, funcList);
