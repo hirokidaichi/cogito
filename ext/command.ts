@@ -11,6 +11,7 @@ type CommandResponse = z.infer<typeof CommandResponseSchema>;
 const buffToString = (buf: Uint8Array) => new TextDecoder().decode(buf);
 
 const doCommand = async (command: string, args: string[]) => {
+  console.info(`command: ${command} ${args.join(" ")}`);
   const commandExecutor = new Deno.Command(command, {
     args,
   });
@@ -44,12 +45,15 @@ function parseCommand(input: string): ParsedResult {
 
 type ExtractKeys<S> = S extends `${infer _Start}{${infer Key}}${infer Rest}`
   ? Key | ExtractKeys<Rest>
-  : never;
+  : void;
 
 // キーを基にオブジェクトの型を生成
-type ToObjectType<T extends string> = {
-  [K in T]: string;
-};
+
+type ToObjectType<T extends string | void> = T extends void ? void
+  : T extends string ? {
+      [K in T]: string;
+    }
+  : never;
 
 type CommandExprToType<Expr extends string> = ToObjectType<ExtractKeys<Expr>>;
 
@@ -71,17 +75,17 @@ function getSchema(parsed: ParsedResult) {
 const command_auto = <CommandExpr extends string>(
   commandExpr: CommandExpr,
 ) => {
-  type ReturnType = CommandExprToType<CommandExpr>;
+  type InputType = CommandExprToType<CommandExpr>;
   const parsed = parseCommand(commandExpr);
   const schema = getSchema(parsed);
   const name = parsed.at(0);
 
-  const ret: Func<ReturnType, CommandResponse> = func(`command_${name}`, {
+  const ret: Func<InputType, CommandResponse> = func(`command_${name}`, {
     description: `Execute Command: ${commandExpr}`,
     //@ts-ignore ここでは型が合わないが、実際には合う
     input: schema,
     output: CommandResponseSchema,
-    callback: async (input: ReturnType) => {
+    callback: async (input: InputType) => {
       const [command, ...args] = parsed.map((p) =>
         //@ts-ignore ここでは型が合わないが、実際には合う
         typeof p === "object" ? input[p.key] : p

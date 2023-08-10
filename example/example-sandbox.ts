@@ -29,7 +29,3 @@ try {
 } catch (error) {
   console.log("エラーをキャッチしたよ", error.message);
 }
-console.log("勝手に止めないでね。");
-setInterval(() => {
-  console.log("動いてるよ");
-}, 1000);
